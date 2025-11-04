@@ -26,8 +26,6 @@ class Role extends Model
     {
         $userModel = config('iam.user_model');
 
-        return $this->belongsToMany($userModel, 'role_user')
-            ->withTimestamps()
-            ->withPivot(['assigned_by', 'expires_at', 'assignment_note']);
+        return $this->belongsToMany($userModel, 'role_user')->withTimestamps();
     }
 }

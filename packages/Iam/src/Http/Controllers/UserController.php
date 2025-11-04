@@ -3,8 +3,6 @@
 namespace Aim\Iam\Http\Controllers;
 
 use Aim\Iam\Services\AuditLogger;
-use Aim\Iam\Services\GovernanceService;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +11,7 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function __construct(private readonly AuditLogger $auditLogger, private readonly GovernanceService $governanceService)
+    public function __construct(private readonly AuditLogger $auditLogger)
     {
         $guardMiddleware = ['auth:' . config('iam.api_guard', 'sanctum')];
 
@@ -80,14 +78,6 @@ class UserController extends Controller
             'roles.*' => ['string', 'exists:roles,name'],
             'permissions' => ['array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
-            'role_assignments' => ['array'],
-            'role_assignments.*.name' => ['required', 'string', 'exists:roles,name'],
-            'role_assignments.*.expires_at' => ['nullable', 'date', 'after:now'],
-            'role_assignments.*.assignment_note' => ['nullable', 'string', 'max:255'],
-            'permission_assignments' => ['array'],
-            'permission_assignments.*.name' => ['required', 'string', 'exists:permissions,name'],
-            'permission_assignments.*.expires_at' => ['nullable', 'date', 'after:now'],
-            'permission_assignments.*.assignment_note' => ['nullable', 'string', 'max:255'],
         ]);
 
         $user->fill(collect($data)->only(['name', 'email', 'phone', 'status'])->toArray());
@@ -103,19 +93,7 @@ class UserController extends Controller
             $user->syncPermissions($data['permissions']);
         }
 
-        if (! empty($data['role_assignments'] ?? [])) {
-            $this->governanceService->assignRolesWithDetails($user, $data['role_assignments'], $request->user(config('iam.api_guard', 'sanctum')));
-        }
-
-        if (! empty($data['permission_assignments'] ?? [])) {
-            $this->governanceService->assignPermissionsWithDetails($user, $data['permission_assignments'], $request->user(config('iam.api_guard', 'sanctum')));
-        }
-
-        $fresh = $user->fresh()->load(['roles', 'permissions', 'roleAssignments.assigner', 'permissionAssignments.assigner']);
-
-        if (config('iam.verification.auto_send', true) && $fresh instanceof MustVerifyEmail && ! $fresh->hasVerifiedEmail()) {
-            $fresh->sendEmailVerificationNotification();
-        }
+        $fresh = $user->fresh()->load(['roles', 'permissions']);
 
         $this->auditLogger->log($request->user(config('iam.api_guard', 'sanctum')), 'users.create', $model, $fresh->getKey(), [], $fresh->toArray());
 
@@ -128,7 +106,7 @@ class UserController extends Controller
     public function show($id): JsonResponse
     {
         $model = $this->model();
-        $user = $model::with(['roles', 'permissions', 'roleAssignments.assigner', 'permissionAssignments.assigner'])->findOrFail($id);
+        $user = $model::with(['roles', 'permissions'])->findOrFail($id);
 
         return response()->json([
             'status' => 'success',
@@ -152,34 +130,17 @@ class UserController extends Controller
             'roles.*' => ['string', 'exists:roles,name'],
             'permissions' => ['array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
-            'role_assignments' => ['array'],
-            'role_assignments.*.name' => ['required', 'string', 'exists:roles,name'],
-            'role_assignments.*.expires_at' => ['nullable', 'date'],
-            'role_assignments.*.assignment_note' => ['nullable', 'string', 'max:255'],
-            'permission_assignments' => ['array'],
-            'permission_assignments.*.name' => ['required', 'string', 'exists:permissions,name'],
-            'permission_assignments.*.expires_at' => ['nullable', 'date'],
-            'permission_assignments.*.assignment_note' => ['nullable', 'string', 'max:255'],
         ]);
 
         $oldValues = $user->only(array_keys($data));
-        $emailChanged = array_key_exists('email', $data) && $data['email'] !== $user->email;
 
         $user->fill(collect($data)->only(['name', 'email', 'phone', 'status'])->toArray());
-
-        if ($emailChanged && $user instanceof MustVerifyEmail) {
-            $user->forceFill(['email_verified_at' => null]);
-        }
 
         if (isset($data['password'])) {
             $user->password = $data['password'];
         }
 
         $user->save();
-
-        if ($emailChanged && $user instanceof MustVerifyEmail && config('iam.verification.auto_send', true)) {
-            $user->sendEmailVerificationNotification();
-        }
 
         if (array_key_exists('roles', $data)) {
             $user->syncRoles($data['roles'] ?? []);
@@ -189,19 +150,7 @@ class UserController extends Controller
             $user->syncPermissions($data['permissions'] ?? []);
         }
 
-        if (! empty($data['role_assignments'] ?? [])) {
-            $this->governanceService->assignRolesWithDetails($user, $data['role_assignments'], $request->user(config('iam.api_guard', 'sanctum')));
-        }
-
-        if (! empty($data['permission_assignments'] ?? [])) {
-            $this->governanceService->assignPermissionsWithDetails($user, $data['permission_assignments'], $request->user(config('iam.api_guard', 'sanctum')));
-        }
-
-        $fresh = $user->fresh()->load(['roles', 'permissions', 'roleAssignments.assigner', 'permissionAssignments.assigner']);
-
-        if (config('iam.verification.auto_send', true) && $fresh instanceof MustVerifyEmail && ! $fresh->hasVerifiedEmail()) {
-            $fresh->sendEmailVerificationNotification();
-        }
+        $fresh = $user->fresh()->load(['roles', 'permissions']);
 
         $this->auditLogger->log($request->user(config('iam.api_guard', 'sanctum')), 'users.update', $model, $fresh->getKey(), $oldValues, $fresh->toArray());
 
