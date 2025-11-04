@@ -3,7 +3,6 @@
 namespace Aim\Iam\Http\Controllers;
 
 use Aim\Iam\Services\AuditLogger;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -96,10 +95,6 @@ class UserController extends Controller
 
         $fresh = $user->fresh()->load(['roles', 'permissions']);
 
-        if (config('iam.verification.auto_send', true) && $fresh instanceof MustVerifyEmail && ! $fresh->hasVerifiedEmail()) {
-            $fresh->sendEmailVerificationNotification();
-        }
-
         $this->auditLogger->log($request->user(config('iam.api_guard', 'sanctum')), 'users.create', $model, $fresh->getKey(), [], $fresh->toArray());
 
         return response()->json([
@@ -138,23 +133,14 @@ class UserController extends Controller
         ]);
 
         $oldValues = $user->only(array_keys($data));
-        $emailChanged = array_key_exists('email', $data) && $data['email'] !== $user->email;
 
         $user->fill(collect($data)->only(['name', 'email', 'phone', 'status'])->toArray());
-
-        if ($emailChanged && $user instanceof MustVerifyEmail) {
-            $user->forceFill(['email_verified_at' => null]);
-        }
 
         if (isset($data['password'])) {
             $user->password = $data['password'];
         }
 
         $user->save();
-
-        if ($emailChanged && $user instanceof MustVerifyEmail && config('iam.verification.auto_send', true)) {
-            $user->sendEmailVerificationNotification();
-        }
 
         if (array_key_exists('roles', $data)) {
             $user->syncRoles($data['roles'] ?? []);
@@ -165,10 +151,6 @@ class UserController extends Controller
         }
 
         $fresh = $user->fresh()->load(['roles', 'permissions']);
-
-        if (config('iam.verification.auto_send', true) && $fresh instanceof MustVerifyEmail && ! $fresh->hasVerifiedEmail()) {
-            $fresh->sendEmailVerificationNotification();
-        }
 
         $this->auditLogger->log($request->user(config('iam.api_guard', 'sanctum')), 'users.update', $model, $fresh->getKey(), $oldValues, $fresh->toArray());
 

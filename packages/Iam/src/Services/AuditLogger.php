@@ -17,10 +17,6 @@ class AuditLogger
         /** @var Request|null $request */
         $request = app()->bound('request') ? request() : null;
 
-        if ($days = config('iam.audit.purge_after_days')) {
-            AuditLog::where('created_at', '<', now()->subDays((int) $days))->delete();
-        }
-
         AuditLog::create([
             'user_id' => $user?->getAuthIdentifier(),
             'action' => $action,

@@ -37,9 +37,6 @@ class IamServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../routes/iam.php');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
-        config()->set('auth.verification.expire', config('iam.verification.expire', 60));
-        config()->set('auth.verification.throttle', config('iam.verification.throttle', 6));
-
         Route::aliasMiddleware('role', CheckRole::class);
         Route::aliasMiddleware('permission', CheckPermission::class);
     }

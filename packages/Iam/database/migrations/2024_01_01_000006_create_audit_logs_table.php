@@ -19,10 +19,6 @@ return new class extends Migration
             $table->string('ip_address')->nullable();
             $table->string('user_agent')->nullable();
             $table->timestamps();
-
-            $table->index('action');
-            $table->index('created_at');
-            $table->index(['model', 'model_id']);
         });
     }
 

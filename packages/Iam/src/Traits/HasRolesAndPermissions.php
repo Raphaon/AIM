@@ -20,29 +20,17 @@ trait HasRolesAndPermissions
 
     public function hasRole(string $role): bool
     {
-        if ($this->relationLoaded('roles')) {
-            return $this->roles->contains('name', $role);
-        }
-
-        return $this->roles()->where('name', $role)->exists();
+        return $this->roles->contains('name', $role);
     }
 
     public function hasAnyRole(array $roles): bool
     {
-        if ($this->relationLoaded('roles')) {
-            return $this->roles->whereIn('name', $roles)->isNotEmpty();
-        }
-
-        return $this->roles()->whereIn('name', $roles)->exists();
+        return $this->roles->whereIn('name', $roles)->isNotEmpty();
     }
 
     public function hasPermission(string $permission): bool
     {
-        if ($this->relationLoaded('permissions') && $this->permissions->contains('name', $permission)) {
-            return true;
-        }
-
-        if ($this->permissions()->where('name', $permission)->exists()) {
+        if ($this->permissions->contains('name', $permission)) {
             return true;
         }
 
@@ -86,16 +74,4 @@ trait HasRolesAndPermissions
 
         $this->permissions()->sync($permissionIds);
     }
-
-    public function hasAnyPermission(array $permissions): bool
-    {
-        foreach ($permissions as $permission) {
-            if ($this->hasPermission($permission)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 }
-
