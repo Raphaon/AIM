@@ -1,59 +1,75 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Rapha IAM Suite
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Rapha IAM Suite est un module Laravel 11 dédié à la gestion des identités et des accès (IAM). Il fournit une base réutilisable pour :
 
-## About Laravel
+- L'authentification API (Sanctum)
+- La gestion des utilisateurs, rôles et permissions (RBAC)
+- La vérification e-mail et la réinitialisation de mot de passe
+- L'audit des actions sensibles
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Le module est conçu pour être empaqueté comme un package Composer (`Aim/Iam`) ou intégré directement dans vos projets Laravel.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Structure principale
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```
+packages/Iam/
+├── config/iam.php           # Configuration publiée
+├── database/migrations/     # Migrations (roles, permissions, audit, etc.)
+├── routes/iam.php           # Routes API exposées
+├── src/
+│   ├── Http/Controllers/    # Contrôleurs Auth, Users, Roles, Permissions, Audit
+│   ├── Http/Middleware/     # Middlewares role & permission
+│   ├── Models/              # Modèles Role, Permission, AuditLog
+│   ├── Services/AuditLogger # Service de journalisation centralisé
+│   └── Traits/              # Helpers RBAC pour le modèle User
+└── IamServiceProvider.php   # Enregistrement des ressources dans Laravel
+```
 
-## Learning Laravel
+## Installation rapide (dans un projet Laravel)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+1. Ajoutez le namespace du package dans `composer.json` (déjà configuré dans ce dépôt) :
+   ```json
+   "autoload": {
+       "psr-4": {
+           "Aim\\Iam\\": "packages/Iam/src/"
+       }
+   }
+   ```
+2. Lancez `composer dump-autoload` si nécessaire.
+3. Assurez-vous que le `IamServiceProvider` est enregistré (dans `bootstrap/app.php`).
+4. Exécutez les migrations :
+   ```bash
+   php artisan migrate
+   ```
+5. (Optionnel) Publiez la configuration :
+   ```bash
+   php artisan vendor:publish --provider="Aim\\Iam\\IamServiceProvider" --tag=iam-config
+   ```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Frontend Angular — Rapha IAM Admin
 
-## Laravel Sponsors
+Un client Angular (standalone components, Angular Material) est disponible dans `frontend/rapha-iam-admin` pour piloter l'API IAM.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Commandes de démarrage
 
-### Premium Partners
+```bash
+cd frontend/rapha-iam-admin
+npm install
+npm run start
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+L'application écoute sur `http://localhost:4200` et consomme par défaut l'API Laravel exposée sur `http://localhost:8000/api`. Ajustez la variable `apiBaseUrl` dans `src/environments/environment.ts` si besoin.
 
-## Contributing
+La documentation spécifique (structure, architecture, guards, etc.) est détaillée dans `frontend/rapha-iam-admin/README.md`.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Documentation
 
-## Code of Conduct
+- [Guide de tests](docs/testing.md)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Contributions
 
-## Security Vulnerabilities
+Les contributions sont les bienvenues pour enrichir la roadmap (sécurité avancée, multi-tenant, intégrations externes). Ouvrez une issue ou une Pull Request avec une description précise de la fonctionnalité envisagée.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Licence
 
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Ce projet est distribué sous licence MIT.
